@@ -1,0 +1,44 @@
+version: "3.5"
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/Nginx.Dockerfile
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - app
+    volumes:
+      - ./:/var/www/html
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+
+  app:
+    build:
+      args:
+        user: sample
+        uid: 1000
+      context: .
+      dockerfile: Fpm.Dockerfile
+    container_name: l-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    links:
+      - mysql
+
+  mysql:
+    image: mysql:5.7
+    ports:
+      - 33061:3306
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+
+#  docker-compose exec app composer install
